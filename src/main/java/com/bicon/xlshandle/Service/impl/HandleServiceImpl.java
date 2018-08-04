@@ -134,7 +134,7 @@ public class HandleServiceImpl implements HandleService {
 //        输出文件
         workbook.write(output);
         output.close();
-//        System.out.println(inputName+"：格式转换完成!");
+        System.out.println(inputName+"：格式转换完成!");
     }
 
     @Override

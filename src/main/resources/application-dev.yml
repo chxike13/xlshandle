@@ -6,6 +6,7 @@ spring:
   http:
     encoding:
       charset: utf-8
-  thymeleaf:
-    prefix: classpath:/templates
-    suffix: .html
+  servlet:
+    multipart:
+      enabled: false
+      max-file-size: 10MB

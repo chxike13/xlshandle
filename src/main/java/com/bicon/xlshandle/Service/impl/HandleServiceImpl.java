@@ -6,6 +6,7 @@ import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -17,12 +18,14 @@ import java.util.List;
 @Service("handleServiceImpl")
 public class HandleServiceImpl implements HandleService {
     @Override
-    public void format(String inputName)throws IOException{
+    public void format(String inputPath, String inputName)throws IOException{
         //      读取文件，创建工作空间
-        String inputURL = "D:\\shuakahuizong\\"+inputName+".xls";//指定的文件目录，需要在此目录放入要格式化的文件。
-        String outputURL = "D:\\shuakahuizong\\"+inputName+"标记.xls";
-        FileOutputStream output = new FileOutputStream(outputURL);
-        FileInputStream input = new FileInputStream(inputURL);
+//        String inputURL = "D:\\shuakahuizong\\"+inputName+".xls";//指定的文件目录，需要在此目录放入要格式化的文件。
+//        String outputURL = "D:\\shuakahuizong\\"+inputName+"标记.xls";
+        File file = new File(inputPath+"/result");
+        file.mkdir();
+        FileOutputStream output = new FileOutputStream(file+"\\"+inputName+"result.xls");
+        FileInputStream input = new FileInputStream(inputPath+"\\"+inputName+".xls");
         HSSFWorkbook workbook = new HSSFWorkbook(input);
         HSSFSheet sheet = workbook.getSheetAt(0);
 
@@ -136,9 +139,19 @@ public class HandleServiceImpl implements HandleService {
     }
 
     @Override
-    public String splitByDepartment(String inputPath, String departmentName) throws IOException {
-        FileInputStream inputStream = new FileInputStream(inputPath);
-        FileOutputStream outputStream = new FileOutputStream(inputPath+"/"+departmentName+".xls");//拆分后的文件的输出路径
+    public String splitByDepartment(String inputPath,String inputName, String departmentName) throws IOException {
+        File inputFile = new File(inputPath+"/"+inputName);
+        inputFile.mkdir();
+        System.out.println(inputFile.getPath());
+        String inputs = inputPath+"/temp";
+        File outputFile = new File(inputs);
+        outputFile.mkdir();
+        String outPath = outputFile.getPath();
+        FileInputStream inputStream = new FileInputStream(inputFile);
+        System.out.println(outPath);
+        FileOutputStream outputStream = new FileOutputStream(outputFile+"\\"+departmentName+".xls");//拆分后的文件的输出路径
+
+
         HSSFWorkbook workbookIn = new HSSFWorkbook(inputStream);
         HSSFWorkbook workbookOut = new HSSFWorkbook();
         HSSFSheet sheetIn = workbookIn.getSheetAt(0);
@@ -188,10 +201,12 @@ public class HandleServiceImpl implements HandleService {
                 cell.setCellStyle(style);
             }
         }
+
         workbookOut.write(outputStream);
+//        inputStream.close();
         outputStream.close();
         System.out.println(departmentName+"：分拆完成！");
-        format(departmentName);
+        format(outPath,departmentName);
         return departmentName+"：处理完成！";
     }
 

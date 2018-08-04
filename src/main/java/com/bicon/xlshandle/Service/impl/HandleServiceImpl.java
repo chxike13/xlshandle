@@ -20,8 +20,6 @@ public class HandleServiceImpl implements HandleService {
     @Override
     public void format(String inputPath, String inputName)throws IOException{
         //      读取文件，创建工作空间
-//        String inputURL = "D:\\shuakahuizong\\"+inputName+".xls";//指定的文件目录，需要在此目录放入要格式化的文件。
-//        String outputURL = "D:\\shuakahuizong\\"+inputName+"标记.xls";
         File file = new File(inputPath+"/result");
         file.mkdir();
         FileOutputStream output = new FileOutputStream(file+"\\"+inputName+"result.xls");
@@ -45,6 +43,7 @@ public class HandleServiceImpl implements HandleService {
         style0.setBorderRight(BorderStyle.THIN);
         style0.setBorderLeft(BorderStyle.THIN);
         style0.setBorderTop(BorderStyle.THIN);
+        System.out.println("行数："+sheet.getPhysicalNumberOfRows());
 //      遍历文件
         for (int i = 0;i < sheet.getPhysicalNumberOfRows();i++){
             HSSFRow row = sheet.getRow(i);
@@ -53,7 +52,7 @@ public class HandleServiceImpl implements HandleService {
                 String s = row.getCell(j).toString();
 
 //                日期处理成当月日期并设置样式
-                if (i==1 &&j > 4){
+                if (i==1 &&j > 4&& sheet.getPhysicalNumberOfRows() > 2){
                     cell.setCellValue(sheet.getRow(2).getCell(4).getNumericCellValue()+j-5);
                     HSSFDataFormat format1 = workbook.createDataFormat();
                     HSSFFont font = workbook.createFont();
@@ -71,7 +70,7 @@ public class HandleServiceImpl implements HandleService {
                     cell.setCellStyle(style1);
                 }
 //              月份格式
-                if (i>1 &&j == 4){
+                if (i>1 &&j == 4 && sheet.getPhysicalNumberOfRows() > 2){
                     HSSFDataFormat format1 = workbook.createDataFormat();
                     HSSFCellStyle style1 = workbook.createCellStyle();
                     style1.setDataFormat(format1.getFormat("yyyy-mm"));
@@ -135,20 +134,20 @@ public class HandleServiceImpl implements HandleService {
 //        输出文件
         workbook.write(output);
         output.close();
-        System.out.println(inputName+"：格式转换完成!");
+//        System.out.println(inputName+"：格式转换完成!");
     }
 
     @Override
     public String splitByDepartment(String inputPath,String inputName, String departmentName) throws IOException {
         File inputFile = new File(inputPath+"/"+inputName);
         inputFile.mkdir();
-        System.out.println(inputFile.getPath());
+//        System.out.println(inputFile.getPath());
         String inputs = inputPath+"/temp";
         File outputFile = new File(inputs);
         outputFile.mkdir();
         String outPath = outputFile.getPath();
         FileInputStream inputStream = new FileInputStream(inputFile);
-        System.out.println(outPath);
+//        System.out.println(outPath);
         FileOutputStream outputStream = new FileOutputStream(outputFile+"\\"+departmentName+".xls");//拆分后的文件的输出路径
 
 
@@ -205,7 +204,7 @@ public class HandleServiceImpl implements HandleService {
         workbookOut.write(outputStream);
 //        inputStream.close();
         outputStream.close();
-        System.out.println(departmentName+"：分拆完成！");
+//        System.out.println(departmentName+"：分拆完成！");
         format(outPath,departmentName);
         return departmentName+"：处理完成！";
     }

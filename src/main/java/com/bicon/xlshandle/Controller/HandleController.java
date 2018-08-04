@@ -25,6 +25,7 @@ public class HandleController {
         Map<String, Object> retData = new HashMap<String, Object>();
         response.setHeader("Access-Control-Allow-Origin", "*");
         response.addHeader("Access-Control-Allow-Methods","*");
+        ArrayList<String> list = new ArrayList<>();
         String savePath = request.getServletContext().getRealPath("/UploadFiles");
         File file = new File(savePath);
         if (!file.exists()){
@@ -73,15 +74,17 @@ public class HandleController {
                     };
                     for (int i = 0; i < department.length; i++){
                         handleService.splitByDepartment(savePath,fileName,department[i]);
+                        list.add(department[i]+"result.xls");
                     }
-                    retData.put("message","上传成功！");
+                    retData.put("success","上传成功！");
                     retData.put("filePath",savePath);
+                    retData.put("resultName",list);
                 }
 
             }
         }catch (Exception e){
             System.out.println(e.toString());
-            retData.put("error",e.toString());
+            retData.put("sucess","上传失败："+e.toString());
         }finally {
             return retData;
         }

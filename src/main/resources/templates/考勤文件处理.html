@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <script type="text/javascript" src="jquery-2.2.3.min.js"></script>
+    <script>
+        function uploadFile() {
+            $.ajax({
+                url: "http://localhost:8081/xlshandle/upload",
+                type: "POST",
+                cache: false,
+                data: new FormData($('#form')[0]),
+                processData:false,
+                contentType:false,
+                dataType:"json"
+            }).done(function (retData) {
+                alert(retData.success);
+                var htmlstr = "<ul>";
+                list = retData.resultName;
+                for (var i = 0; i < list.length; i++){
+                    htmlstr = htmlstr +
+                            "<li>"+list[i]+"<a href='http://localhost:8081/xlshandle/download?fileName="+list[i]+"'>下载</a>"+"</li>"
+                }
+                htmlstr = htmlstr+"</ul>";
+                $('#messagediv').html(htmlstr);
+            });
+
+        }
+    </script>
+</head>
+<body>
+<h2>考勤文件处理</h2>
+<form id="form" enctype="multipart/form-data">
+    <input type="file" name="filename" size="45"><br>
+    <input type="button" onclick="uploadFile()" value="上传">
+</form>
+<div id="messagediv"></div>
+</body>
+</html>

@@ -9,9 +9,14 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URLEncoder;
-import java.util.HashMap;
-import java.util.Map;
 
+/**
+* @Description: 提供下载接口下载处理后的文件。
+* @Param:  request
+* @return:
+* @Author: xike
+* @Date: 2018/8/7
+*/
 @RestController
 public class DownloadController {
     @RequestMapping("/download")

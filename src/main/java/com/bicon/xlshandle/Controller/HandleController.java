@@ -15,7 +15,13 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.util.*;
-
+/**
+* @Description: 上传待处理文件，上传成功后调用 splitByDepartment按部门分拆之后返回处理后的文件的下载方式。
+* @Param:  request
+* @return:  retData
+* @Author: xike
+* @Date: 2018/8/7
+*/
 @RestController
 public class HandleController {
     @Resource(name = "handleServiceImpl")
@@ -62,7 +68,7 @@ public class HandleController {
                     outputStream.close();
                     fileItem.delete();
                     System.out.println("upload done!");
-
+//                  需要分拆的部门，部门名称改变以后直接修改这里就行了。
                     String[] department = {"安保部","GMP","必康综合体",
                             "财务部","采购部","工程部",
                             "工程管理办公室","国际贸易部","行政部",
@@ -72,6 +78,7 @@ public class HandleController {
                             "信息部（信息大部）","证券部","智能化部",
                             "资金运营管理中心","自动化部"
                     };
+//                    按部门分拆文件
                     for (int i = 0; i < department.length; i++){
                         handleService.splitByDepartment(savePath,fileName,department[i]);
                         list.add(department[i]+"result.xls");

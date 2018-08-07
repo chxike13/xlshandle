@@ -1,6 +1,17 @@
 package com.bicon.xlshandle.Service.impl;
 
 import com.bicon.xlshandle.Service.HandleService;
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.util.EntityUtils;
 import org.apache.poi.hssf.usermodel.*;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
@@ -10,10 +21,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 @Service("handleServiceImpl")
 public class HandleServiceImpl implements HandleService {
@@ -43,17 +52,37 @@ public class HandleServiceImpl implements HandleService {
         style0.setBorderRight(BorderStyle.THIN);
         style0.setBorderLeft(BorderStyle.THIN);
         style0.setBorderTop(BorderStyle.THIN);
+//        周末样式
+        HSSFCellStyle style2 = workbook.createCellStyle();
+        style2.setFillForegroundColor(IndexedColors.YELLOW.getIndex());
+        style2.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        style2.setAlignment(HorizontalAlignment.CENTER);
+        style2.setBorderBottom(BorderStyle.THIN);
+        style2.setBorderRight(BorderStyle.THIN);
+        style2.setBorderLeft(BorderStyle.THIN);
+        style2.setBorderTop(BorderStyle.THIN);
         System.out.println("行数："+sheet.getPhysicalNumberOfRows());
+
+        List<Map<String, Long>> leaveInfo = null;
 //      遍历文件
-        for (int i = 0;i < sheet.getPhysicalNumberOfRows();i++){
-            HSSFRow row = sheet.getRow(i);
-            for (int j = 0;j < row.getPhysicalNumberOfCells();j++){
-                HSSFCell cell = row.getCell(j);
-                String s = row.getCell(j).toString();
+        for (int rowNum = 0;rowNum < sheet.getPhysicalNumberOfRows();rowNum++){
+            HSSFRow row = sheet.getRow(rowNum);
+            for (int cellNum = 0;cellNum < row.getPhysicalNumberOfCells();cellNum++){
+                HSSFCell cell = row.getCell(cellNum);
+                String s = row.getCell(cellNum).toString();
+//       获取请假信息
+                if (rowNum > 1 && cellNum == 1){
+                    Date date = sheet.getRow(2).getCell(4).getDateCellValue();
+                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+                    String timeS = sdf.format(date);
+                    String nameS = sheet.getRow(rowNum).getCell(cellNum).toString();
+                    leaveInfo = getLeaveInfo(timeS,nameS);
+
+                }
 
 //                日期处理成当月日期并设置样式
-                if (i==1 &&j > 4&& sheet.getPhysicalNumberOfRows() > 2){
-                    cell.setCellValue(sheet.getRow(2).getCell(4).getNumericCellValue()+j-5);
+                if (rowNum==1 &&cellNum > 4&& sheet.getPhysicalNumberOfRows() > 2){
+                    cell.setCellValue(sheet.getRow(2).getCell(4).getNumericCellValue()+cellNum-5);
                     HSSFDataFormat format1 = workbook.createDataFormat();
                     HSSFFont font = workbook.createFont();
                     font.setColor(IndexedColors.WHITE.getIndex());
@@ -70,7 +99,7 @@ public class HandleServiceImpl implements HandleService {
                     cell.setCellStyle(style1);
                 }
 //              月份格式
-                if (i>1 &&j == 4 && sheet.getPhysicalNumberOfRows() > 2){
+                if (rowNum>1 && cellNum == 4 && sheet.getPhysicalNumberOfRows() > 2){
                     HSSFDataFormat format1 = workbook.createDataFormat();
                     HSSFCellStyle style1 = workbook.createCellStyle();
                     style1.setDataFormat(format1.getFormat("yyyy-mm"));
@@ -81,14 +110,15 @@ public class HandleServiceImpl implements HandleService {
                     style1.setBorderLeft(BorderStyle.THIN);
                     style1.setBorderTop(BorderStyle.THIN);
                     cell.setCellStyle(style1);
+
                 }
 
 //                设置列宽
-                if (j>=5){
-                    sheet.setColumnWidth(j,20*256);
+                if (cellNum>=5){
+                    sheet.setColumnWidth(cellNum,20*256);
                 }
 //                去除多余数据
-                if (i>=2 && j >= 5){
+                if (rowNum>=2 && cellNum >= 5){
                     if (s.indexOf(" ")>0) {
                         String temp1 = s.substring(0, s.indexOf(" "));
                         String temp2 = s.substring(s.lastIndexOf(" ") + 1);
@@ -99,23 +129,30 @@ public class HandleServiceImpl implements HandleService {
                         if (temp2.compareTo("18:00") < 0) {
                             cell.setCellStyle(style);
                         }
-                        if (isWeekend(sheet.getRow(1).getCell(j))){
-                            HSSFCellStyle style2 = workbook.createCellStyle();
-                            style2.setFillForegroundColor(IndexedColors.YELLOW.getIndex());
-                            style2.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-                            style2.setAlignment(HorizontalAlignment.CENTER);
-                            style2.setBorderBottom(BorderStyle.THIN);
-                            style2.setBorderRight(BorderStyle.THIN);
-                            style2.setBorderLeft(BorderStyle.THIN);
-                            style2.setBorderTop(BorderStyle.THIN);
+                        if (isWeekend(sheet.getRow(1).getCell(cellNum))){
                             cell.setCellStyle(style2);
+                        }
+                        Date date = sheet.getRow(1).getCell(cellNum).getDateCellValue();
+                        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+                        String timeS = sdf.format(date);
+//                        System.out.println(nameS);
+                        if(isAskForLeave(timeS, leaveInfo)){
+                            HSSFCellStyle styleAskForLeave = workbook.createCellStyle();
+                            styleAskForLeave.setFillForegroundColor(IndexedColors.GREEN.getIndex());
+                            styleAskForLeave.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+                            styleAskForLeave.setAlignment(HorizontalAlignment.CENTER);
+                            styleAskForLeave.setBorderBottom(BorderStyle.THIN);
+                            styleAskForLeave.setBorderRight(BorderStyle.THIN);
+                            styleAskForLeave.setBorderLeft(BorderStyle.THIN);
+                            styleAskForLeave.setBorderTop(BorderStyle.THIN);
+                            cell.setCellStyle(styleAskForLeave);
                         }
                         cell.setCellValue(s1);
                     }
                     else {
                         style0.setDataFormat(format.getFormat("hh:mm"));
                         cell.setCellStyle(style0);
-                        if (isWeekend(sheet.getRow(1).getCell(j))){
+                        if (isWeekend(sheet.getRow(1).getCell(cellNum))){
                             HSSFCellStyle style3 = workbook.createCellStyle();
                             style3.setFillForegroundColor(IndexedColors.YELLOW.getIndex());
                             style3.setFillPattern(FillPatternType.SOLID_FOREGROUND);
@@ -126,6 +163,22 @@ public class HandleServiceImpl implements HandleService {
                             style3.setBorderTop(BorderStyle.THIN);
                             style3.setDataFormat(format.getFormat("hh:mm"));
                             cell.setCellStyle(style3);
+                        }
+                        Date date = sheet.getRow(1).getCell(cellNum).getDateCellValue();
+                        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+                        String timeS = sdf.format(date);
+//                        System.out.println(timeS);
+                        if (isAskForLeave(timeS, leaveInfo)){
+                            HSSFCellStyle styleAskForLeave = workbook.createCellStyle();
+                            styleAskForLeave.setFillForegroundColor(IndexedColors.GREEN.getIndex());
+                            styleAskForLeave.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+                            styleAskForLeave.setAlignment(HorizontalAlignment.CENTER);
+                            styleAskForLeave.setBorderBottom(BorderStyle.THIN);
+                            styleAskForLeave.setBorderRight(BorderStyle.THIN);
+                            styleAskForLeave.setBorderLeft(BorderStyle.THIN);
+                            styleAskForLeave.setBorderTop(BorderStyle.THIN);
+                            styleAskForLeave.setDataFormat(format.getFormat("hh:mm"));
+                            cell.setCellStyle(styleAskForLeave);
                         }
                     }
                 }
@@ -218,6 +271,90 @@ public class HandleServiceImpl implements HandleService {
 //        System.out.println(date+"\n"+i);
         if (i==0||i==6) {
             return true;
+        }
+        return false;
+    }
+
+    @Override
+    public List<Map<String, Long>> getLeaveInfo(String times, String names){
+        String startTime = times.substring(0,times.lastIndexOf("-"));
+        String userName = names;
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM");
+        Date date = new Date();
+        try {
+            date = sdf.parse(startTime);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+
+        CloseableHttpClient client = HttpClients.createDefault();
+        HttpPost post = new HttpPost("https://app.botong.tech:443/approval/approval/ApprovalHistoryAttr");
+        List<NameValuePair> parms = new ArrayList<NameValuePair>();
+        parms.add(new BasicNameValuePair("companyName","新沂必康新医药产业综合体"));
+        parms.add(new BasicNameValuePair("startTime",Long.toString(date.getTime())));
+        parms.add(new BasicNameValuePair("approvalName","请假"));
+        parms.add(new BasicNameValuePair("userName",userName));
+        List<Map<String,Long>> result = new ArrayList<Map<String, Long>>();
+        try {
+            post.setHeader("Content-Type","application/x-www-form-urlencoded");
+            post.setEntity(new UrlEncodedFormEntity(parms,"utf-8"));
+            CloseableHttpResponse response = client.execute(post);
+            String jsonString = EntityUtils.toString(response.getEntity());
+            Gson gson = new Gson();
+            JsonObject jsonObject = gson.fromJson(jsonString,JsonObject.class);
+            if (jsonObject.get("statusCode").getAsInt()==200) {
+                JsonArray jsonArray = jsonObject.getAsJsonArray("data");
+                if (jsonArray == null){
+                    result=null;
+                }else {
+                    for (int i = 0; i < jsonArray.size(); i++) {
+                        Map<String, Long> map = new HashMap<String, Long>();
+                        JsonObject time = jsonArray.get(i).getAsJsonObject().get("field2").getAsJsonObject();
+                        String valueS = time.get("value").toString();
+                        String startTimeS = valueS.substring(valueS.indexOf("\"") + 1, valueS.indexOf(","));
+                        String endTimeS = valueS.substring(valueS.indexOf(",") + 1, valueS.lastIndexOf("\""));
+                        System.out.println("startTime:" + startTimeS);
+                        System.out.println("endTime:" + endTimeS);
+                        Long startTimeL = Long.parseLong(startTimeS);
+                        Long endTimeL = Long.parseLong(endTimeS);
+                        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+                        Date startDate, endDate;
+                        startDate = format.parse(format.format(startTimeL));
+                        endDate = format.parse(format.format(endTimeL));
+                        map.put("startTime", startDate.getTime());
+                        map.put("endTime", endDate.getTime());
+                        System.out.println("startTime:" + format.format(startDate) + "\tendTime:" + format.format(endDate));
+                        result.add(map);
+                    }
+                }
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }finally {
+            return result;
+        }
+    }
+    @Override
+    public boolean isAskForLeave(String times, List<Map<String, Long>> list){
+        String dateStr = times;
+        try {
+            SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+            Date date = format.parse(dateStr);
+            Long dateL = date.getTime();
+            if (list == null){
+                System.out.println("NULL!!!");
+            }else{
+                for (int i = 0; i < list.size(); i++) {
+                    Map<String, Long> map = list.get(i);
+                    Long l1 = map.get("startTime");
+                    Long l2 = map.get("endTime");
+                    if (dateL >= l1 && dateL <= l2) {
+                        return true;
+                    }
+                }
+            }
+        }catch (Exception e){
+            e.printStackTrace();
         }
         return false;
     }
